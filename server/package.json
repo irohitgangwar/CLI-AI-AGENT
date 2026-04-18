@@ -4,8 +4,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev":"nodemon src/index.js"
-
+    "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +12,10 @@
   "type": "module",
   "description": "",
   "dependencies": {
+    "@prisma/client": "^7.7.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "prisma": "^7.7.0"
   }
 }
