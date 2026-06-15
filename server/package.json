@@ -12,10 +12,13 @@
   "type": "module",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^7.7.0",
+    "@prisma/client": "^5.22.0",
+    "auth": "^1.2.3",
+    "better": "^0.1.0",
+    "better-auth": "^1.6.5",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "prisma": "^7.7.0"
+    "prisma": "^5.22.0"
   }
 }
