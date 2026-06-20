@@ -6,6 +6,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 
 import { Command } from "commander";
+import { login, logout, whoami } from "./commands/auth/login.js";
 
 
 dotenv.config();
@@ -26,8 +27,10 @@ async function main() {
 
   program
     .version("0.0.1")
-    .description("Orbit CLI - Device Flow Authentication");
-
+    .description("Orbit CLI - Device Flow Authentication")
+    .addCommand(login)
+    .addCommand(logout)
+    .addCommand(whoami)
 
     
   // Default action shows help

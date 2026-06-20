@@ -18,7 +18,7 @@ import prisma from "../../../lib/db.js";
 
 dotenv.config();
 
-const DEMO_URL = "http://localhost:3005";
+const URL = "http://localhost:3005";
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const CONFIG_DIR = path.join(os.homedir(), ".better-auth");
 const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
@@ -119,7 +119,7 @@ export async function loginAction(opts) {
     })
     .parse(opts);
 
-  const serverUrl = options.serverUrl || DEMO_URL;
+  const serverUrl = options.serverUrl || URL;
   const clientId = options.clientId || CLIENT_ID;
 
   intro(chalk.bold("🔐 Auth CLI Login"));
@@ -418,7 +418,7 @@ export async function whoamiAction(opts) {
 
 export const login = new Command("login")
   .description("Login to Better Auth")
-  .option("--server-url <url>", "The Better Auth server URL", DEMO_URL)
+  .option("--server-url <url>", "The Better Auth server URL",URL)
   .option("--client-id <id>", "The OAuth client ID", CLIENT_ID)
   .action(loginAction);
 
@@ -428,5 +428,5 @@ export const logout = new Command("logout")
 
 export const whoami = new Command("whoami")
   .description("Show current authenticated user")
-  .option("--server-url <url>", "The Better Auth server URL", DEMO_URL)
+  .option("--server-url <url>", "The Better Auth server URL", URL)
   .action(whoamiAction);

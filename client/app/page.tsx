@@ -11,7 +11,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isPending && !data?.session && !data?.user) {
-      router.push("/sign-in")
+        router.push("/sign-in")
     }
   }, [data, isPending, router])
 

@@ -1,19 +1,21 @@
 "use client"
-import React, { useEffect } from 'react'
+import React, { useEffect, Suspense } from 'react'
 import { LoginForm } from '../../../components/ui/Login-form'
 import { Spinner } from '@/components/ui/spinner'
 import { authClient } from '@/lib/auth-client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-const Page = () => {
+const SignInContent = () => {
   const { data, isPending } = authClient.useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirectTo") || "/"
   
   useEffect(() => {
     if (!isPending && (data?.session || data?.user)) {
-      router.push("/")
+      router.push(redirectTo)
     }
-  }, [data, isPending, router])
+  }, [data, isPending, router, redirectTo])
   
   if (isPending || data?.session || data?.user) {
     return (
@@ -22,10 +24,18 @@ const Page = () => {
       </div>
     )
   }
+  return <LoginForm />
+}
+
+const Page = () => {
   return (
-   <>
-   <LoginForm/>
-   </>
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center h-screen">
+        <Spinner />
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   )
 }
 

@@ -4,13 +4,18 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card,CardContent } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client.js";
 import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
+import { useSearchParams } from "next/navigation";
 import loginImg from "@/public/login.svg";
 import githubImg from "@/public/github.svg";
 
 export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/";
+  const callbackURL = `http://localhost:3000${redirectTo}`;
+
   return (
 
     <>
@@ -30,7 +35,7 @@ export const LoginForm = () => {
                 type="button"
                 onClick={() => authClient.signIn.social({
                   provider: "github",
-                  callbackURL: "http://localhost:3000"
+                  callbackURL: callbackURL
                 })}
                
               >
