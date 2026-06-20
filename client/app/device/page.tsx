@@ -36,8 +36,8 @@ function DeviceAuthForm() {
     try {
       const formattedCode = userCode.trim().replace(/-/g, "").toUpperCase()
 
-      const response = await authClient.device.verify({
-        userCode: formattedCode
+      const response = await authClient.device({
+        query: { user_code: formattedCode }
       })
 
       if (response.data) {
