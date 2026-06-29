@@ -39,6 +39,7 @@ function DeviceAuthForm() {
       const response = await authClient.device({
         query: { user_code: formattedCode }
       })
+      
 
       if (response.data) {
         router.push(`/approve?user_code=${formattedCode}`)
