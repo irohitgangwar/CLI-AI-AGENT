@@ -15,8 +15,10 @@
   "type": "module",
   "description": "",
   "dependencies": {
+    "@ai-sdk/google": "^3.0.86",
     "@clack/prompts": "^1.5.1",
     "@prisma/client": "^5.22.0",
+    "ai": "^6.0.214",
     "auth": "^1.2.3",
     "better": "^0.1.0",
     "better-auth": "^1.6.5",
