@@ -10,7 +10,7 @@ import chalk from "chalk"
 export class AIService{
 constructor(){
   if(!config.googleApiKey){
-    throw new error("GOOGLE API  KEY is missing") 
+    throw new Error("GOOGLE API KEY is missing") 
   }
   this.model=google(config.model,{
     apiKey:config.googleApiKey,
