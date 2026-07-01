@@ -1,7 +1,7 @@
 import {betterAuth} from "better-auth"
 import {prismaAdapter} from "better-auth/adapters/prisma" //👉 This helps auth talk to database using Prisma translator between auth and database”
 import prisma from "./db.js";
-import { deviceAuthorization } from "better-auth/plugins"; 
+import { deviceAuthorization, bearer } from "better-auth/plugins"; 
 
 export const auth = betterAuth({
    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001", //Where my backend lives
@@ -16,6 +16,7 @@ export const auth = betterAuth({
       verificationUri: "/device", 
       schema: {},
     }), 
+    bearer(),
   ],
     socialProviders:{
       github:{
