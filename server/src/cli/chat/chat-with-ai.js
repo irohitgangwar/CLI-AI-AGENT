@@ -5,9 +5,8 @@ import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
 import { AIService } from "../ai/google-service.js";
-import { Chatservice } from "../../service/chat.service.js";
 import { getStoredToken } from "../commands/auth/login.js";
-import prisma from "../../lib/db.js";
+import * as apiClient from "../api/api-client.js";
 
 // Configure marked to use terminal renderer
 marked.use(
@@ -30,9 +29,8 @@ marked.use(
   })
 );
 
-// Initialize services
+// Initialize service
 const aiService = new AIService();
-const chatService = new Chatservice();
 
 async function getUserFromToken() {
   const token = await getStoredToken();
@@ -43,13 +41,7 @@ async function getUserFromToken() {
 
   const spinner = yoctoSpinner({ text: "Authenticating..." }).start();
 
-  const user = await prisma.user.findFirst({
-    where: {
-      sessions: {
-        some: { token: token.access_token },
-      },
-    },
-  });
+  const user = await apiClient.getUserFromApi(token.access_token);
 
   if (!user) {
     spinner.error("User not found");
@@ -57,14 +49,14 @@ async function getUserFromToken() {
   }
 
   spinner.success(`Welcome back, ${user.name}!`);
-  return user;
+  return { user, token };
 }
 
-async function initConversation(userId, conversationId = null, mode = "chat") {
+async function initConversation(token, userId, conversationId = null, mode = "chat") {
   const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
   
-  const conversation = await chatService.getOrCreateConversation(
-    userId,
+  const conversation = await apiClient.getOrCreateConversation(
+    token,
     conversationId,
     mode
   );
@@ -123,18 +115,21 @@ function displayMessages(messages) {
   });
 }
 
-async function saveMessage(conversationId, role, content) {
-  return await chatService.addMessage(conversationId, role, content);
+async function saveMessage(token, conversationId, role, content) {
+  return await apiClient.addMessage(token, conversationId, role, content);
 }
 
-async function getAIResponse(conversationId) {
+async function getAIResponse(token, conversationId) {
   const spinner = yoctoSpinner({ 
     text: "AI is thinking...", 
     color: "cyan" 
   }).start();
 
-  const dbMessages = await chatService.getMessages(conversationId);
-  const aiMessages = chatService.formatMessagesForAI(dbMessages);
+  const dbMessages = await apiClient.getMessages(token, conversationId);
+  const aiMessages = dbMessages.map((msg) => ({
+    role: msg.role,
+    content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+  }));
   
   let fullResponse = "";
   let isFirstChunk = true;
@@ -168,14 +163,14 @@ async function getAIResponse(conversationId) {
   }
 }
 
-async function updateConversationTitle(conversationId, userId, userInput, messageCount) {
+async function updateConversationTitle(token, conversationId, userId, userInput, messageCount) {
   if (messageCount === 1) {
     const title = userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
-    await chatService.updateTitle(conversationId, userId, title);
+    await apiClient.updateTitle(token, conversationId, title);
   }
 }
 
-async function chatLoop(conversation) {
+async function chatLoop(token, conversation) {
   const helpBox = boxen(
     `${chalk.gray('• Type your message and press Enter')}\n${chalk.gray('• Markdown formatting is supported in responses')}\n${chalk.gray('• Type "exit" to end conversation')}\n${chalk.gray('• Press Ctrl+C to quit anytime')}`,
     {
@@ -225,19 +220,19 @@ async function chatLoop(conversation) {
     }
 
     // Save user message
-    await saveMessage(conversation.id, "user", userInput);
+    await saveMessage(token, conversation.id, "user", userInput);
 
     // Get messages count before AI response
-    const messages = await chatService.getMessages(conversation.id);
+    const messages = await apiClient.getMessages(token, conversation.id);
     
     // Get AI response with streaming and markdown rendering
-    const aiResponse = await getAIResponse(conversation.id);
+    const aiResponse = await getAIResponse(token, conversation.id);
 
     // Save AI response
-    await saveMessage(conversation.id, "assistant", aiResponse);
+    await saveMessage(token, conversation.id, "assistant", aiResponse);
 
     // Update title if first exchange
-    await updateConversationTitle(conversation.id, conversation.userId, userInput, messages.length);
+    await updateConversationTitle(token, conversation.id, conversation.userId, userInput, messages.length);
   }
 }
 
@@ -253,9 +248,9 @@ export async function startChat(mode = "chat", conversationId = null) {
       })
     );
 
-    const user = await getUserFromToken();
-    const conversation = await initConversation(user.id, conversationId, mode);
-    await chatLoop(conversation);
+    const { user, token } = await getUserFromToken();
+    const conversation = await initConversation(token.access_token, user.id, conversationId, mode);
+    await chatLoop(token.access_token, conversation);
     
     // Display outro
     outro(chalk.green("✨ Thanks for chatting!"));

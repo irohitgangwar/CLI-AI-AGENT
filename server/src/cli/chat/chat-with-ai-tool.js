@@ -5,9 +5,8 @@ import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
 import { AIService } from "../ai/google-service.js";
-import { ChatService } from "../../services/chat.services.js";
 import { getStoredToken } from "../commands/auth/login.js";
-import prisma from "../../lib/db.js";
+import * as apiClient from "../api/api-client.js";
 import { 
   availableTools, 
   getEnabledTools, 
@@ -37,7 +36,6 @@ marked.use(
 );
 
 const aiService = new AIService();
-const chatService = new ChatService();
 
 async function getUserFromToken() {
   const token = await getStoredToken();
@@ -48,13 +46,7 @@ async function getUserFromToken() {
 
   const spinner = yoctoSpinner({ text: "Authenticating..." }).start();
 
-  const user = await prisma.user.findFirst({
-    where: {
-      sessions: {
-        some: { token: token.access_token },
-      },
-    },
-  });
+  const user = await apiClient.getUserFromApi(token.access_token);
 
   if (!user) {
     spinner.error("User not found");
@@ -62,7 +54,7 @@ async function getUserFromToken() {
   }
 
   spinner.success(`Welcome back, ${user.name}!`);
-  return user;
+  return { user, token };
 }
 
 async function selectTools() {
@@ -109,11 +101,11 @@ async function selectTools() {
   return selectedTools.length > 0;
 }
 
-async function initConversation(userId, conversationId = null, mode = "tool") {
+async function initConversation(token, userId, conversationId = null, mode = "tool") {
   const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
   
-  const conversation = await chatService.getOrCreateConversation(
-    userId,
+  const conversation = await apiClient.getOrCreateConversation(
+    token,
     conversationId,
     mode
   );
@@ -177,18 +169,21 @@ function displayMessages(messages) {
   });
 }
 
-async function saveMessage(conversationId, role, content) {
-  return await chatService.addMessage(conversationId, role, content);
+async function saveMessage(token, conversationId, role, content) {
+  return await apiClient.addMessage(token, conversationId, role, content);
 }
 
-async function getAIResponse(conversationId) {
+async function getAIResponse(token, conversationId) {
   const spinner = yoctoSpinner({ 
     text: "AI is thinking...", 
     color: "cyan" 
   }).start();
 
-  const dbMessages = await chatService.getMessages(conversationId);
-  const aiMessages = chatService.formatMessagesForAI(dbMessages);
+  const dbMessages = await apiClient.getMessages(token, conversationId);
+  const aiMessages = dbMessages.map((msg) => ({
+    role: msg.role,
+    content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+  }));
 
   const tools = getEnabledTools();
   
@@ -267,14 +262,14 @@ async function getAIResponse(conversationId) {
 }
 
 
-async function updateConversationTitle(conversationId, userInput, messageCount) {
+async function updateConversationTitle(token, conversationId, userId, userInput, messageCount) {
   if (messageCount === 1) {
     const title = userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
-    await chatService.updateTitle(conversationId, title);
+    await apiClient.updateTitle(token, conversationId, title);
   }
 }
 
-async function chatLoop(conversation) {
+async function chatLoop(token, conversation) {
   const enabledToolNames = getEnabledToolNames();
   const helpBox = boxen(
     `${chalk.gray('• Type your message and press Enter')}\n${chalk.gray('• AI has access to:')} ${enabledToolNames.length > 0 ? enabledToolNames.join(", ") : "No tools"}\n${chalk.gray('• Type "exit" to end conversation')}\n${chalk.gray('• Press Ctrl+C to quit anytime')}`,
@@ -332,11 +327,11 @@ async function chatLoop(conversation) {
     });
     console.log(userBox);
 
-    await saveMessage(conversation.id, "user", userInput);
-    const messages = await chatService.getMessages(conversation.id);
-    const aiResponse = await getAIResponse(conversation.id);
-    await saveMessage(conversation.id, "assistant", aiResponse);
-    await updateConversationTitle(conversation.id, userInput, messages.length);
+    await saveMessage(token, conversation.id, "user", userInput);
+    const messages = await apiClient.getMessages(token, conversation.id);
+    const aiResponse = await getAIResponse(token, conversation.id);
+    await saveMessage(token, conversation.id, "assistant", aiResponse);
+    await updateConversationTitle(token, conversation.id, conversation.userId, userInput, messages.length);
   }
 }
 
@@ -350,13 +345,13 @@ export async function startToolChat(conversationId = null) {
       })
     );
 
-    const user = await getUserFromToken();
+    const { user, token } = await getUserFromToken();
     
     // Select tools
     await selectTools();
     
-    const conversation = await initConversation(user.id, conversationId, "tool");
-    await chatLoop(conversation);
+    const conversation = await initConversation(token.access_token, user.id, conversationId, "tool");
+    await chatLoop(token.access_token, conversation);
     
     // Reset tools on exit
     resetTools();

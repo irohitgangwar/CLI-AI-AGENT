@@ -9,7 +9,7 @@ export class AIService {
       throw new Error("GOOGLE_API_KEY is not set in environment variables");
     }
     
-    this.model = google(config.model, {
+    this.model = google(config.orbitalModel, {
       apiKey: config.googleApiKey,
     });
   }

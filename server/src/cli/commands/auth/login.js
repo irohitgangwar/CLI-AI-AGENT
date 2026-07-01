@@ -12,9 +12,9 @@ import path from "path";
 import yoctoSpinner from "yocto-spinner";
 
 
-import * as z from "zod/v4";
+import { z } from "zod";
 import dotenv from "dotenv";
-import prisma from "../../../lib/db.js";
+import { getUserFromApi } from "../../api/api-client.js";
 
 dotenv.config();
 
@@ -388,21 +388,12 @@ export async function whoamiAction(opts) {
     process.exit(1);
   }
 
-  const user = await prisma.user.findFirst({
-    where: {
-      sessions: {
-        some: {
-          token: token.access_token,
-        },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-    },
-  });
+  const user = await getUserFromApi(token.access_token);
+
+  if (!user) {
+    console.log(chalk.red("\n❌ Session not found or expired on the server. Please login again.\n"));
+    process.exit(1);
+  }
 
   // Output user session info
   console.log(

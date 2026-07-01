@@ -1,12 +1,12 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { getStoredToken } from "../auth/login.js";
-import prisma from "../../../lib/db.js";
-import { select } from "@clack/prompts";
+import { getUserFromApi } from "../../api/api-client.js";
+import { select, isCancel } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { startChat } from "../../chat/chat-with-ai.js";
 import { startToolChat } from "../../chat/chat-with-ai-tool.js";
-import { startToolChat } from "../../chat/chat-with-ai-tool.js";
+import { startAgentChat } from "../../chat/chat-with-ai-agent.js";
 
 const wakeUpAction = async()=>{
   const token=await getStoredToken();
@@ -16,21 +16,7 @@ const wakeUpAction = async()=>{
   }
 
   const spinner=yoctoSpinner({text:"Fetching user Information....."}).start();
-  const user=await prisma.user.findFirst({
-    where:{
-      sessions:{
-        some:{
-          token:token.access_token
-        }
-      }
-    },
-    select:{
-      id:true,
-      name:true,
-      email:true,
-      image:true,
-    }
-  })
+  const user = await getUserFromApi(token.access_token);
   spinner.stop();
 
   if(!user){
@@ -40,38 +26,51 @@ const wakeUpAction = async()=>{
 
   console.log(chalk.green(`Welcome Back, ${user.name}!\n`));
 
-const choice=await select({
-  message:"Select an option",
-  options:[
-    {
-      value:"chat",
-      label:"Chat",
-      hint:"Engage in a conversation"
-    },
-    {
-      value:"tool",
-      label:"Tool Calling",
-      hint:"Chat with tools"
-    },
-    {
-      value:"agent",
-      label:"Agentic Mode",
-      hint:"Advanced AI Agent"
-    },
-  ],
-})
+  while (true) {
+    const choice = await select({
+      message: "Select an option",
+      options: [
+        {
+          value: "chat",
+          label: "Chat",
+          hint: "Engage in a conversation"
+        },
+        {
+          value: "tool",
+          label: "Tool Calling",
+          hint: "Chat with tools"
+        },
+        {
+          value: "agent",
+          label: "Agentic Mode",
+          hint: "Advanced AI Agent"
+        },
+        {
+          value: "exit",
+          label: "Exit",
+          hint: "Exit to terminal"
+        }
+      ],
+    });
 
-switch(choice){
-  case "chat":
-    startChat("chat");
-    break;
-  case "tool":
-    await startToolChat()
-    break;
-  case "agent":
-    await startAgentChat()
-    break;
-}
+    if (isCancel(choice) || choice === "exit") {
+      console.log(chalk.yellow("\n👋 Goodbye!\n"));
+      break;
+    }
+
+    switch(choice){
+      case "chat":
+        await startChat("chat");
+        break;
+      case "tool":
+        await startToolChat();
+        break;
+      case "agent":
+        await startAgentChat();
+        break;
+    }
+    console.log("\n");
+  }
 
 
 }
