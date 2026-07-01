@@ -5,7 +5,7 @@ import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
 import { AIService } from "../ai/google-service.js";
-import { ChatService } from "../../services/chat.services.js";
+import { Chatservice } from "../../services/chat.service.js";
 import { getStoredToken } from "../commands/auth/login.js";
 import prisma from "../../lib/db.js";
 import { 
@@ -37,7 +37,7 @@ marked.use(
 );
 
 const aiService = new AIService();
-const chatService = new ChatService();
+const chatService = new Chatservice();
 
 async function getUserFromToken() {
   const token = await getStoredToken();
@@ -267,10 +267,10 @@ async function getAIResponse(conversationId) {
 }
 
 
-async function updateConversationTitle(conversationId, userInput, messageCount) {
+async function updateConversationTitle(conversationId, userId, userInput, messageCount) {
   if (messageCount === 1) {
     const title = userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
-    await chatService.updateTitle(conversationId, title);
+    await chatService.updateTitle(conversationId, userId, title);
   }
 }
 
@@ -336,7 +336,7 @@ async function chatLoop(conversation) {
     const messages = await chatService.getMessages(conversation.id);
     const aiResponse = await getAIResponse(conversation.id);
     await saveMessage(conversation.id, "assistant", aiResponse);
-    await updateConversationTitle(conversation.id, userInput, messages.length);
+    await updateConversationTitle(conversation.id, conversation.userId, userInput, messages.length);
   }
 }
 

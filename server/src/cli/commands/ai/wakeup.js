@@ -6,7 +6,7 @@ import { select } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { startChat } from "../../chat/chat-with-ai.js";
 import { startToolChat } from "../../chat/chat-with-ai-tool.js";
-import { startToolChat } from "../../chat/chat-with-ai-tool.js";
+import { startAgentChat } from "../../chat/chat-with-ai-agent.js";
 
 const wakeUpAction = async()=>{
   const token=await getStoredToken();
@@ -63,7 +63,7 @@ const choice=await select({
 
 switch(choice){
   case "chat":
-    startChat("chat");
+    await startChat("chat");
     break;
   case "tool":
     await startToolChat()

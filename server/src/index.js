@@ -35,7 +35,7 @@ app.get('/health',(req,res)=>{
   res.send("ok");
 })
 
-app.listen(process.env.PORT || 3005, (req,res)=>{
+app.listen(process.env.PORT || 3005, ()=>{
 console.log(`Server is running on http://localhost:${process.env.PORT || 3005}`);
 })
 

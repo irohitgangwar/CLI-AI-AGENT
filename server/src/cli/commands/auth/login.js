@@ -12,7 +12,7 @@ import path from "path";
 import yoctoSpinner from "yocto-spinner";
 
 
-import * as z from "zod/v4";
+import { z } from "zod";
 import dotenv from "dotenv";
 import prisma from "../../../lib/db.js";
 
@@ -403,6 +403,11 @@ export async function whoamiAction(opts) {
       image: true,
     },
   });
+
+  if (!user) {
+    console.log(chalk.red("\n❌ Session not found or expired on the server. Please login again.\n"));
+    process.exit(1);
+  }
 
   // Output user session info
   console.log(

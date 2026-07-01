@@ -2,13 +2,13 @@ import chalk from "chalk";
 import boxen from "boxen";
 import { text, isCancel, cancel, intro, outro, confirm } from "@clack/prompts";
 import { AIService } from "../ai/google-service.js";
-import { ChatService } from "../../services/chat.services.js";
+import { Chatservice } from "../../services/chat.service.js";
 import { getStoredToken } from "../commands/auth/login.js";
 import prisma from "../../lib/db.js";
 import { generateApplication } from "../../config/agent.config.js";
 
 const aiService = new AIService();
-const chatService = new ChatService();
+const chatService = new Chatservice();
 
 async function getUserFromToken() {
   const token = await getStoredToken();
