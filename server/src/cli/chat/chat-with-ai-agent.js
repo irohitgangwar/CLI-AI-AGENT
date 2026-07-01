@@ -2,14 +2,12 @@ import chalk from "chalk";
 import boxen from "boxen";
 import { text, isCancel, cancel, intro, outro, confirm } from "@clack/prompts";
 import { AIService } from "../ai/google-service.js";
-import { Chatservice } from "../../services/chat.service.js";
 import { getStoredToken } from "../commands/auth/login.js";
-import prisma from "../../lib/db.js";
 import { generateApplication } from "../../config/agent.config.js";
+import * as apiClient from "../api/api-client.js";
 import path from "path";
 
 const aiService = new AIService();
-const chatService = new Chatservice();
 
 function getSmartOutputDir() {
   if (process.env.ORBIT_OUTPUT_DIR) {
@@ -43,25 +41,19 @@ async function getUserFromToken() {
     throw new Error("Not authenticated. Please run 'orbit login' first.");
   }
 
-  const user = await prisma.user.findFirst({
-    where: {
-      sessions: {
-        some: { token: token.access_token },
-      },
-    },
-  });
+  const user = await apiClient.getUserFromApi(token.access_token);
 
   if (!user) {
     throw new Error("User not found. Please login again.");
   }
 
   console.log(chalk.green(`\n✓ Welcome back, ${user.name}!\n`));
-  return user;
+  return { user, token };
 }
 
-async function initConversation(userId, conversationId = null) {
-  const conversation = await chatService.getOrCreateConversation(
-    userId,
+async function initConversation(token, userId, conversationId = null) {
+  const conversation = await apiClient.getOrCreateConversation(
+    token,
     conversationId,
     "agent"
   );
@@ -86,11 +78,11 @@ async function initConversation(userId, conversationId = null) {
   return conversation;
 }
 
-async function saveMessage(conversationId, role, content) {
-  return await chatService.addMessage(conversationId, role, content);
+async function saveMessage(token, conversationId, role, content) {
+  return await apiClient.addMessage(token, conversationId, role, content);
 }
 
-async function agentLoop(conversation) {
+async function agentLoop(token, conversation) {
   const helpBox = boxen(
     `${chalk.cyan.bold("What can the agent do?")}\n\n` +
     `${chalk.gray('• Generate complete applications from descriptions')}\n` +
@@ -148,7 +140,7 @@ async function agentLoop(conversation) {
     console.log(userBox);
 
     // Save user message
-    await saveMessage(conversation.id, "user", userInput);
+    await saveMessage(token, conversation.id, "user", userInput);
 
     try {
       // Generate application using structured output
@@ -166,7 +158,7 @@ async function agentLoop(conversation) {
           `Location: ${result.appDir}\n\n` +
           `Setup commands:\n${result.commands.join('\n')}`;
         
-        await saveMessage(conversation.id, "assistant", responseMessage);
+        await saveMessage(token, conversation.id, "assistant", responseMessage);
 
         // Ask if user wants to generate another app
         const continuePrompt = await confirm({
@@ -186,7 +178,7 @@ async function agentLoop(conversation) {
     } catch (error) {
       console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
       
-      await saveMessage(conversation.id, "assistant", `Error: ${error.message}`);
+      await saveMessage(token, conversation.id, "assistant", `Error: ${error.message}`);
       
       const retry = await confirm({
         message: chalk.cyan("Would you like to try again?"),
@@ -214,7 +206,7 @@ export async function startAgentChat(conversationId = null) {
       )
     );
 
-    const user = await getUserFromToken();
+    const { user, token } = await getUserFromToken();
     
     // Warning about file system access
     const shouldContinue = await confirm({
@@ -227,8 +219,8 @@ export async function startAgentChat(conversationId = null) {
       process.exit(0);
     }
     
-    const conversation = await initConversation(user.id, conversationId);
-    await agentLoop(conversation);
+    const conversation = await initConversation(token.access_token, user.id, conversationId);
+    await agentLoop(token.access_token, conversation);
     
     outro(chalk.green.bold("\n✨ Thanks for using Agent Mode!"));
     
