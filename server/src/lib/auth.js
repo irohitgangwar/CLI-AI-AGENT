@@ -14,6 +14,7 @@ export const auth = betterAuth({
     plugins: [
     deviceAuthorization({ 
       verificationUri: "/device", 
+      schema: {},
     }), 
   ],
     socialProviders:{
