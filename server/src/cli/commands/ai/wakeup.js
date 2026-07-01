@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { getStoredToken } from "../auth/login.js";
 import prisma from "../../../lib/db.js";
-import { select } from "@clack/prompts";
+import { select, isCancel } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { startChat } from "../../chat/chat-with-ai.js";
 import { startToolChat } from "../../chat/chat-with-ai-tool.js";
@@ -40,38 +40,51 @@ const wakeUpAction = async()=>{
 
   console.log(chalk.green(`Welcome Back, ${user.name}!\n`));
 
-const choice=await select({
-  message:"Select an option",
-  options:[
-    {
-      value:"chat",
-      label:"Chat",
-      hint:"Engage in a conversation"
-    },
-    {
-      value:"tool",
-      label:"Tool Calling",
-      hint:"Chat with tools"
-    },
-    {
-      value:"agent",
-      label:"Agentic Mode",
-      hint:"Advanced AI Agent"
-    },
-  ],
-})
+  while (true) {
+    const choice = await select({
+      message: "Select an option",
+      options: [
+        {
+          value: "chat",
+          label: "Chat",
+          hint: "Engage in a conversation"
+        },
+        {
+          value: "tool",
+          label: "Tool Calling",
+          hint: "Chat with tools"
+        },
+        {
+          value: "agent",
+          label: "Agentic Mode",
+          hint: "Advanced AI Agent"
+        },
+        {
+          value: "exit",
+          label: "Exit",
+          hint: "Exit to terminal"
+        }
+      ],
+    });
 
-switch(choice){
-  case "chat":
-    await startChat("chat");
-    break;
-  case "tool":
-    await startToolChat()
-    break;
-  case "agent":
-    await startAgentChat()
-    break;
-}
+    if (isCancel(choice) || choice === "exit") {
+      console.log(chalk.yellow("\n👋 Goodbye!\n"));
+      break;
+    }
+
+    switch(choice){
+      case "chat":
+        await startChat("chat");
+        break;
+      case "tool":
+        await startToolChat();
+        break;
+      case "agent":
+        await startAgentChat();
+        break;
+    }
+    console.log("\n");
+  }
 
 
 }

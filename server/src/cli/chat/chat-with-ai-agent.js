@@ -6,9 +6,35 @@ import { Chatservice } from "../../services/chat.service.js";
 import { getStoredToken } from "../commands/auth/login.js";
 import prisma from "../../lib/db.js";
 import { generateApplication } from "../../config/agent.config.js";
+import path from "path";
 
 const aiService = new AIService();
 const chatService = new Chatservice();
+
+function getSmartOutputDir() {
+  if (process.env.ORBIT_OUTPUT_DIR) {
+    return path.resolve(process.env.ORBIT_OUTPUT_DIR);
+  }
+
+  const cwd = process.cwd();
+  const isInsideWorkspace = cwd.includes("CLI AI AGENT") || cwd.includes("cli-ai-agent");
+
+  if (isInsideWorkspace) {
+    const pathParts = cwd.split(path.sep);
+    const index = pathParts.findIndex(part => 
+      part.toLowerCase() === "cli ai agent" || part.toLowerCase() === "cli-ai-agent"
+    );
+    
+    if (index !== -1) {
+      const parentDir = pathParts.slice(0, index).join(path.sep);
+      return path.join(parentDir, "orbit-apps");
+    }
+    
+    return path.join(cwd, "..", "orbit-apps");
+  }
+
+  return cwd;
+}
 
 async function getUserFromToken() {
   const token = await getStoredToken();
@@ -44,7 +70,7 @@ async function initConversation(userId, conversationId = null) {
     `${chalk.bold("Conversation")}: ${conversation.title}\n` +
     `${chalk.gray("ID:")} ${conversation.id}\n` +
     `${chalk.gray("Mode:")} ${chalk.magenta("Agent (Code Generator)")}\n` +
-    `${chalk.cyan("Working Directory:")} ${process.cwd()}`,
+    `${chalk.cyan("Target Directory:")} ${getSmartOutputDir()}`,
     {
       padding: 1,
       margin: { top: 1, bottom: 1 },
@@ -126,10 +152,11 @@ async function agentLoop(conversation) {
 
     try {
       // Generate application using structured output
+      const outputDir = getSmartOutputDir();
       const result = await generateApplication(
         userInput,
         aiService,
-        process.cwd()
+        outputDir
       );
 
       if (result && result.success) {
