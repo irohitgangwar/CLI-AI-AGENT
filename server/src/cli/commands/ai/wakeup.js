@@ -5,6 +5,8 @@ import prisma from "../../../lib/db.js";
 import { select } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { startChat } from "../../chat/chat-with-ai.js";
+import { startToolChat } from "../../chat/chat-with-ai-tool.js";
+import { startToolChat } from "../../chat/chat-with-ai-tool.js";
 
 const wakeUpAction = async()=>{
   const token=await getStoredToken();
@@ -64,10 +66,10 @@ switch(choice){
     startChat("chat");
     break;
   case "tool":
-    console.log(chalk.green("Tool mode selected"));
+    await startToolChat()
     break;
   case "agent":
-    console.log(chalk.green("Agent mode selected"));
+    await startAgentChat()
     break;
 }
 
