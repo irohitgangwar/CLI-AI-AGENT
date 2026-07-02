@@ -1,0 +1,3 @@
+[submodule "orbital-cli"]
+	path = orbital-cli
+	url = https://github.com/irohitgangwar/orbital-cli.git
