@@ -11,7 +11,7 @@ const app = express();
 const chatService = new Chatservice();
 
 app.use(cors({
-  origin: ["http://localhost:3000"],
+  origin: ["http://localhost:3000", process.env.CLIENT_URL].filter(Boolean),
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"]
 }));
@@ -85,7 +85,8 @@ app.put("/api/chat/conversations/:id", requireAuth, async (req, res) => {
 
 app.get("/device", async(req,res)=>{
   const {user_code}=req.query
-  res.redirect(`http://localhost:3000/device?user_code=${user_code}`)
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+  res.redirect(`${clientUrl}/device?user_code=${user_code}`)
 })
 
 
